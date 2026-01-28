@@ -8,7 +8,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { EmailTemplateModule } from './email-template/email-template.module';
 import { UsersModule } from './users/users.module';
 import { BullModule } from '@nestjs/bull';
-import { PrismaService } from './prisma/prisma.service';
+import { LoggerModule } from 'nestjs-pino';
 
 @Module({
   imports: [
@@ -19,6 +19,33 @@ import { PrismaService } from './prisma/prisma.service';
         port: Number(process.env.REDIS_PORT) || 6379,
       },
     }),
+    LoggerModule.forRoot({
+      pinoHttp: {
+        transport: {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'SYS:standard',
+          },
+        },
+
+        serializers: {
+          req(req) {
+            return {
+              id: req.id,
+              method: req.method,
+              url: req.url,
+            };
+          },
+          res(res) {
+            return {
+              statusCode: res.statusCode,
+            };
+          },
+        },
+      },
+    }),
+
     PrismaModule,
     AuthModule,
     EmailTemplateModule,
@@ -29,4 +56,4 @@ import { PrismaService } from './prisma/prisma.service';
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class AppModule { }

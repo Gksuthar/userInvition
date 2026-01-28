@@ -1,43 +1,54 @@
 import { OtpDto } from './dto/otp.dto';
-import { CacheService } from './../cache/cache.service';
 import { RegisterDto } from './dto/register.dto';
 import { AuthAdminRepository, AuthUserRepository } from './auth.repositories';
 import {
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
+
 import { LoginDto } from './dto/login.dto';
 import { AuthHelperService } from './auth.helper';
+import { Logger } from 'nestjs-pino';
+import { User } from 'generated/prisma';
 
 @Injectable()
 export class AuthUserService {
   constructor(
     private readonly authUserRepository: AuthUserRepository,
-    private readonly cacheService: CacheService,
     private readonly authHelperService: AuthHelperService,
-  ) {}
+    private readonly logger: Logger,
+  ) { }
 
   async registerUser(registerDto: RegisterDto) {
     const role = 'user';
     const { email, password, name } = registerDto;
+    this.logger.log('User registration started', { email });
 
     const existingAdmin = await this.authUserRepository.findUserByEmail(email);
     if (existingAdmin) {
+      this.logger.warn({ email }, 'User already exists');
       throw new ConflictException('User already exists');
     }
 
     await this.authHelperService.sendOtpForVerify(email, name, role);
+    this.logger.log({ email }, 'OTP sent to user email');
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await this.authUserRepository.createUser({
+    const user: User | null = await this.authUserRepository.createUser({
       email,
       password: hashedPassword,
       name,
     });
+    if (!user) {
+      this.logger.error({ email }, 'Failed to create user');
+      throw new ConflictException('Failed to create user');
+    }
 
+    this.logger.log({ userId: user.id, email }, 'User registered successfully');
 
     return {
       message: 'User registered successfully. OTP sent to email.',
@@ -50,13 +61,22 @@ export class AuthUserService {
     };
   }
 
-
-
-  async loginUser(loginDto: LoginDto) {
+  async loginUser(loginDto: LoginDto): Promise<{
+    message: string;
+    admin: {
+      id: string;
+      email: string;
+      name: string;
+      is_verified: boolean;
+    };
+    tokens: { accessToken: string; refreshToken: string };
+  }> {
     const { email, password } = loginDto;
+    this.logger.log('User Login started', { email });
 
-    const existingUser = await this.authUserRepository.findUserByEmail(email);
+    const existingUser: User | null = await this.authUserRepository.findUserByEmail(email);
     if (!existingUser) {
+      this.logger.warn('User already exists', { email });
       throw new ConflictException('User already exists');
     }
 
@@ -66,19 +86,33 @@ export class AuthUserService {
     );
 
     if (!isPasswordValid) {
+      this.logger.warn('Invalid credentials', { email });
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isverify = await existingUser.is_verified;
+    const isverify: boolean = existingUser.is_verified;
     if (!isverify) {
-      await this.authHelperService.sendOtpForVerify(existingUser.email, existingUser.name, 'user');
+      await this.authHelperService.sendOtpForVerify(
+        existingUser.email,
+        existingUser.name,
+        'user',
+      );
+      this.logger.warn(
+        { email: existingUser.email },
+        'Please verify your email. OTP has been sent again.',
+      );
       throw new UnauthorizedException(
         'Please verify your email. OTP has been sent again.',
       );
     }
 
-    const isDeletedUser = await existingUser.delete_by_id;
+    const isDeletedUser = existingUser.delete_by_id;
     if (isDeletedUser) {
+      this.logger.warn(
+        { email: existingUser.email },
+        'Deleted user attempted to login',
+      );
+
       throw new UnauthorizedException(
         'Your account has been deleted. Please contact support.',
       );
@@ -89,6 +123,7 @@ export class AuthUserService {
       existingUser.email,
       existingUser.role,
     );
+    this.logger.log({ email }, 'Login successful');
     return {
       message: 'User login successfully.',
       admin: {
@@ -101,22 +136,9 @@ export class AuthUserService {
     };
   }
 
-
   async verifyUser(verifyData: OtpDto) {
-    const { email, otp } = verifyData;
-    const savedOtp = await this.cacheService.get(`user:otp:${email}`);
-    if (!savedOtp) {
-      throw new ConflictException('OTP expired or not found');
-    }
-    if (savedOtp !== otp) {
-      throw new ConflictException('Invalid OTP');
-    }
-    await this.cacheService.del(`user:otp:${email}`);
-    await this.authUserRepository.userVerify(email);
-    return {
-      message: 'user verified successfully',
-      email: email,
-    };
+    const role = 'user';
+    return await this.authHelperService.verifyUserOrAdmin(verifyData, role);
   }
 }
 
@@ -124,9 +146,8 @@ export class AuthUserService {
 export class AuthAdminService {
   constructor(
     private readonly authRepository: AuthAdminRepository,
-    private cacheService: CacheService,
     private readonly authHelperService: AuthHelperService,
-
+    private readonly logger: Logger,
   ) {}
 
   async registerAdmin(registerDto: RegisterDto) {
@@ -135,21 +156,31 @@ export class AuthAdminService {
 
     const existingAdmin = await this.authRepository.findAdminByEmail(email);
     if (existingAdmin) {
+      this.logger.warn({ email }, 'email is already exist');
       throw new ConflictException('Admin already exists');
     }
 
     await this.authHelperService.sendOtpForVerify(email, name, role);
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const admin = await this.authRepository.createAdmin({
       email,
       password: hashedPassword,
       name,
     });
+    if (!admin) {
+      this.logger.warn({ email }, 'Admin is not created plz try again ');
+      throw new InternalServerErrorException(
+        'Admin could not be created. Please try again.',
+      );
+    }
+
+    this.logger.log(
+      { email },
+      'Admin registered successfully. OTP sent to email',
+    );
 
     // const tokens = await this.generateTokens(admin.id, admin.email, 'admin');
-
     return {
       message: 'Admin registered successfully. OTP sent to email.',
       admin: {
@@ -166,6 +197,7 @@ export class AuthAdminService {
     const existingAdmin = await this.authRepository.findAdminByEmail(email);
 
     if (!existingAdmin) {
+      this.logger.warn({ email }, 'Admin already exists');
       throw new UnauthorizedException('Admin already exists');
     }
 
@@ -173,21 +205,34 @@ export class AuthAdminService {
       password,
       existingAdmin.password,
     );
-
     if (!isPasswordValid) {
+      this.logger.warn({ email }, 'Invalid credentials');
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isverify = await existingAdmin.is_verified;
+    const isverify = existingAdmin.is_verified;
     if (!isverify) {
-      await this.authHelperService.sendOtpForVerify(existingAdmin.email, existingAdmin.name, 'admin');
+      await this.authHelperService.sendOtpForVerify(
+        existingAdmin.email,
+        existingAdmin.name,
+        'admin',
+      );
+      this.logger.warn(
+        { email },
+        'Please verify your email. OTP has been sent again',
+      );
+
       throw new UnauthorizedException(
         'Please verify your email. OTP has been sent again.',
       );
     }
 
-    const isDeletedUser = await existingAdmin.delete_by_id;
+    const isDeletedUser = existingAdmin.delete_by_id;
     if (isDeletedUser) {
+      this.logger.warn(
+        { email },
+        'Your account has been deleted. Please contact support',
+      );
       throw new UnauthorizedException(
         'Your account has been deleted. Please contact support.',
       );
@@ -198,6 +243,7 @@ export class AuthAdminService {
       existingAdmin.email,
       existingAdmin.role,
     );
+    this.logger.log({ email }, 'Admin login successfully.');
     return {
       message: 'Admin login successfully.',
       admin: {
