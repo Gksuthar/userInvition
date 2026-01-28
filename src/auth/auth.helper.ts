@@ -27,7 +27,7 @@ export class AuthHelperService {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
-  async generateTokens(userId: string, email: string, role: string) {
+  generateTokens(userId: string, email: string, role: string) {
     const payload = { sub: userId, email, role };
     this.logger.log(
       { email },
@@ -126,7 +126,7 @@ export class AuthHelperService {
         body,
       );
     } catch (error: any) {
-      this.logger.warn('Failed to send email', error?.message ?? error);
+      this.logger.warn('Failed to send email', error);
       throw new InternalServerErrorException('Failed to send email');
     }
   }
@@ -148,37 +148,42 @@ export class AuthHelperService {
     }
 
     await this.cacheService.del(key);
+    const TemplateType = role === 'user' ? 'USER_WELCOME' : 'ADMIN_WELCOME';
+    // if (role === 'user') {
+    this.logger.log({ TemplateType, message: 'template is loading ' });
+    const template = await this.emailTemplateService.findByType(TemplateType);
 
-    if (role === 'user') {
-      const template =
-        await this.emailTemplateService.findByType('USER_WELCOME');
-
-      if (!template) {
+    if (!template) {
+      if (role === 'admin') {
+        this.logger.warn({ email }, 'ADMIN_WELCOME template not found');
+        throw new ConflictException('ADMIN_WELCOME template not found');
+      } else {
         this.logger.warn({ email }, 'USER_WELCOME template not found');
         throw new ConflictException('USER_WELCOME template not found');
       }
+    }
 
-      const body = template.body.replace('{{email}}', email);
+    const body = template.body.replace('{{email}}', email);
 
-      await this.emailBullConfigService.addEmailToQueue(
-        email,
-        template.subject,
-        body,
-      );
-
+    await this.emailBullConfigService.addEmailToQueue(
+      email,
+      template.subject,
+      body,
+    );
+    if (role === 'user') {
       await this.authUserRepository.userVerify(email);
       this.logger.log({ email }, 'User verified successfully');
       return {
         message: 'User verified successfully',
         email,
       };
+    } else {
+      await this.authAdminRepository.adminVerify(email);
+      this.logger.log({ email }, 'Admin verified successfully');
+      return {
+        message: 'Admin verified successfully',
+        email,
+      };
     }
-
-    await this.authAdminRepository.adminVerify(email);
-    this.logger.log({ email }, 'Admin verified successfully');
-    return {
-      message: 'Admin verified successfully',
-      email,
-    };
   }
 }

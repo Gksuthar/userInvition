@@ -1,3 +1,4 @@
+import { VerifyOtpResponseDto } from './dto/verify-otp-response.dto';
 import { OtpDto } from './dto/otp.dto';
 import { RegisterDto } from './dto/register.dto';
 import { AuthAdminRepository, AuthUserRepository } from './auth.repositories';
@@ -13,6 +14,8 @@ import { LoginDto } from './dto/login.dto';
 import { AuthHelperService } from './auth.helper';
 import { Logger } from 'nestjs-pino';
 import { User } from 'generated/prisma';
+import { RegisterResponseDto } from './dto/register-response.dto';
+import { LoginResponseDto } from './dto/login-response.dto';
 
 @Injectable()
 export class AuthUserService {
@@ -20,9 +23,9 @@ export class AuthUserService {
     private readonly authUserRepository: AuthUserRepository,
     private readonly authHelperService: AuthHelperService,
     private readonly logger: Logger,
-  ) { }
+  ) {}
 
-  async registerUser(registerDto: RegisterDto) {
+  async registerUser(registerDto: RegisterDto): Promise<RegisterResponseDto> {
     const role = 'user';
     const { email, password, name } = registerDto;
     this.logger.log('User registration started', { email });
@@ -52,7 +55,7 @@ export class AuthUserService {
 
     return {
       message: 'User registered successfully. OTP sent to email.',
-      user: {
+      data: {
         id: user.id,
         email: user.email,
         name: user.name,
@@ -61,16 +64,7 @@ export class AuthUserService {
     };
   }
 
-  async loginUser(loginDto: LoginDto): Promise<{
-    message: string;
-    admin: {
-      id: string;
-      email: string;
-      name: string;
-      is_verified: boolean;
-    };
-    tokens: { accessToken: string; refreshToken: string };
-  }> {
+  async loginUser(loginDto: LoginDto): Promise<LoginResponseDto> {
     const { email, password } = loginDto;
     this.logger.log('User Login started', { email });
 
@@ -126,7 +120,7 @@ export class AuthUserService {
     this.logger.log({ email }, 'Login successful');
     return {
       message: 'User login successfully.',
-      admin: {
+      data: {
         id: existingUser.id,
         email: existingUser.email,
         name: existingUser.name,
@@ -136,7 +130,7 @@ export class AuthUserService {
     };
   }
 
-  async verifyUser(verifyData: OtpDto) {
+  async verifyUser(verifyData: OtpDto): Promise<VerifyOtpResponseDto> {
     const role = 'user';
     return await this.authHelperService.verifyUserOrAdmin(verifyData, role);
   }
@@ -150,7 +144,7 @@ export class AuthAdminService {
     private readonly logger: Logger,
   ) {}
 
-  async registerAdmin(registerDto: RegisterDto) {
+  async registerAdmin(registerDto: RegisterDto): Promise<RegisterResponseDto> {
     const role = 'admin';
     const { email, password, name } = registerDto;
 
@@ -183,7 +177,7 @@ export class AuthAdminService {
     // const tokens = await this.generateTokens(admin.id, admin.email, 'admin');
     return {
       message: 'Admin registered successfully. OTP sent to email.',
-      admin: {
+      data: {
         id: admin.id,
         email: admin.email,
         name: admin.name,
@@ -192,7 +186,7 @@ export class AuthAdminService {
     };
   }
 
-  async loginAdmin(loginDto: LoginDto) {
+  async loginAdmin(loginDto: LoginDto): Promise<LoginResponseDto> {
     const { email, password } = loginDto;
     const existingAdmin = await this.authRepository.findAdminByEmail(email);
 
@@ -246,7 +240,7 @@ export class AuthAdminService {
     this.logger.log({ email }, 'Admin login successfully.');
     return {
       message: 'Admin login successfully.',
-      admin: {
+      data: {
         id: existingAdmin.id,
         email: existingAdmin.email,
         name: existingAdmin.name,
@@ -256,7 +250,7 @@ export class AuthAdminService {
     };
   }
 
-  async verifyAdmin(verifyData: OtpDto) {
+  async verifyAdmin(verifyData: OtpDto): Promise<VerifyOtpResponseDto> {
     const role = 'admin';
     return await this.authHelperService.verifyUserOrAdmin(verifyData, role);
   }

@@ -1,3 +1,4 @@
+import { VerifyOtpResponseDto } from './dto/verify-otp-response.dto';
 import { OtpDto } from './dto/otp.dto';
 import { Body, Controller, Post } from '@nestjs/common';
 import { AuthAdminService, AuthUserService } from './auth.service';
@@ -5,6 +6,8 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ApiTags, ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
+import { RegisterResponseDto } from './dto/register-response.dto';
+import { LoginResponseDto } from './dto/login-response.dto';
 
 @ApiTags('Admin Authentication')
 @Controller('auth/admin')
@@ -15,7 +18,7 @@ export class AdminAuthController {
   ) {}
 
   @Post('signup')
-  async registerUser(@Body() registerDto: RegisterDto) {
+  async registerUser(@Body() registerDto: RegisterDto): Promise<RegisterResponseDto> {
     this.logger.log(
       { email: registerDto.email },
       'Admin signup request received',
@@ -27,7 +30,7 @@ export class AdminAuthController {
   @ApiBody({ type: OtpDto })
   @ApiResponse({ status: 200, description: 'Admin verified successfully.' })
   @Post('verify-signup-code')
-  verifyOtp(@Body() otpDto: OtpDto) {
+  verifyOtp(@Body() otpDto: OtpDto): Promise<VerifyOtpResponseDto> {
     this.logger.log(
       { email: otpDto.email },
       'otp verification request received',
@@ -39,7 +42,7 @@ export class AdminAuthController {
   @ApiBody({ type: LoginDto })
   @ApiResponse({ status: 200, description: 'Admin login successfully.' })
   @Post('signin')
-  async loginAdmin(@Body() loginDto: LoginDto) {
+  async loginAdmin(@Body() loginDto: LoginDto): Promise<LoginResponseDto> {
     this.logger.log({ email: loginDto.email }, 'Admin signin request received');
     return this.authService.loginAdmin(loginDto);
   }
@@ -60,7 +63,7 @@ export class UserAuthController {
     description: 'User registered successfully. OTP sent to email.',
   })
   @Post('signup')
-  async registerUser(@Body() registerDto: RegisterDto) {
+  async registerUser(@Body() registerDto: RegisterDto): Promise<RegisterResponseDto> {
     this.logger.log(
       { email: registerDto.email },
       'User signup request received',
@@ -72,7 +75,7 @@ export class UserAuthController {
   @ApiBody({ type: OtpDto })
   @ApiResponse({ status: 200, description: 'User verified successfully.' })
   @Post('verify-signup-code')
-  verifyUserOtp(@Body() otpDto: OtpDto) {
+  verifyUserOtp(@Body() otpDto: OtpDto): Promise<VerifyOtpResponseDto> {
     this.logger.log({
       email: otpDto.email,
       message: 'User OTP verification attempt',
@@ -84,7 +87,7 @@ export class UserAuthController {
   @ApiBody({ type: LoginDto })
   @ApiResponse({ status: 200, description: 'User login successfully.' })
   @Post('signin')
-  async loginUser(@Body() loginDto: LoginDto) {
+  async loginUser(@Body() loginDto: LoginDto): Promise<LoginResponseDto> {
     this.logger.log({
       email: loginDto.email,
       message: 'User signin request received',
