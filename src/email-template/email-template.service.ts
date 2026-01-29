@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateEmailTemplateDto } from './dto/create-email-template.dto';
 import { EmailTemplateResponseDto } from './dto/email-template-response.dto';
 import { Logger } from 'nestjs-pino';
-import { EmailTemplateType } from 'generated/prisma';
+import { EmailTemplateType } from '@prisma/client';
 
 @Injectable()
 export class EmailTemplateService {

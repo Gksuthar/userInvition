@@ -10,6 +10,7 @@ import { RefreshJwtStrategy } from './strategies/refresh-jwt.strategy';
 import { PrismaModule } from '../prisma/prisma.module';
 import { MailerModule } from 'src/mailer/mailer.module';
 import { AuthHelperService } from './auth.helper';
+import { PermissionSeedService } from './permission/permission-seed.service';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { AuthHelperService } from './auth.helper';
     JwtStrategy,
     RefreshJwtStrategy,
     AuthHelperService,
+    PermissionSeedService,
   ],
   controllers: [AdminAuthController, UserAuthController],
   exports: [AuthUserService, AuthAdminService],

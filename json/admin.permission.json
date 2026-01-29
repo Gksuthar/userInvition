@@ -1,0 +1,35 @@
+{
+  "roles": {
+    "admin": {
+      "users": {
+        "read": true,
+        "create": true,
+        "update": true,
+        "delete": true
+      },
+      "subscriptions": {
+        "ACTIVE": true,
+        "CANCEL": true
+      }
+    },
+    "user": {
+      "users": {
+        "read": true,
+        "create": true,
+        "update": true,
+        "delete": false
+      },
+      "categories": {
+        "read": true,
+        "create": true,
+        "update": false,
+        "delete": false
+      },
+      "subscriptions": {
+        "ACTIVE": true,
+        "CANCEL": false
+      }
+     
+    }
+  }
+}

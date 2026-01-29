@@ -13,7 +13,8 @@ import bcrypt from 'bcryptjs';
 import { LoginDto } from './dto/login.dto';
 import { AuthHelperService } from './auth.helper';
 import { Logger } from 'nestjs-pino';
-import { User } from 'generated/prisma';
+import { User } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import { RegisterResponseDto } from './dto/register-response.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
 
@@ -23,6 +24,7 @@ export class AuthUserService {
     private readonly authUserRepository: AuthUserRepository,
     private readonly authHelperService: AuthHelperService,
     private readonly logger: Logger,
+    private readonly prisma: PrismaService,
   ) {}
 
   async registerUser(registerDto: RegisterDto): Promise<RegisterResponseDto> {
@@ -51,6 +53,18 @@ export class AuthUserService {
       throw new ConflictException('Failed to create user');
     }
 
+    // Attach role-based permission to the new user
+    const userPermission = await this.prisma.permission.findFirst({
+      where: { name: role },
+    });
+
+    if (userPermission) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { permission_id: userPermission.id },
+      });
+    }
+
     this.logger.log({ userId: user.id, email }, 'User registered successfully');
 
     return {
@@ -68,7 +82,8 @@ export class AuthUserService {
     const { email, password } = loginDto;
     this.logger.log('User Login started', { email });
 
-    const existingUser: User | null = await this.authUserRepository.findUserByEmail(email);
+    const existingUser: User | null =
+      await this.authUserRepository.findUserByEmail(email);
     if (!existingUser) {
       this.logger.warn('User already exists', { email });
       throw new ConflictException('User already exists');
@@ -112,7 +127,7 @@ export class AuthUserService {
       );
     }
 
-    const tokens = await this.authHelperService.generateTokens(
+    const tokens = this.authHelperService.generateTokens(
       existingUser.id,
       existingUser.email,
       existingUser.role,
@@ -142,6 +157,7 @@ export class AuthAdminService {
     private readonly authRepository: AuthAdminRepository,
     private readonly authHelperService: AuthHelperService,
     private readonly logger: Logger,
+    private readonly prisma: PrismaService,
   ) {}
 
   async registerAdmin(registerDto: RegisterDto): Promise<RegisterResponseDto> {
@@ -167,6 +183,25 @@ export class AuthAdminService {
       throw new InternalServerErrorException(
         'Admin could not be created. Please try again.',
       );
+    }
+
+    const adminPermission = await this.prisma.permission.findFirst({
+      where: { name: role },
+    });
+    this.logger.log(
+      {
+        name,
+        role,
+        adminPermission,
+      },
+      'Permission fetched for role',
+    );
+
+    if (adminPermission) {
+      await this.prisma.admin.update({
+        where: { id: admin.id },
+        data: { permission_id: adminPermission.id },
+      });
     }
 
     this.logger.log(
@@ -232,7 +267,7 @@ export class AuthAdminService {
       );
     }
 
-    const tokens = await this.authHelperService.generateTokens(
+    const tokens = this.authHelperService.generateTokens(
       existingAdmin.id,
       existingAdmin.email,
       existingAdmin.role,

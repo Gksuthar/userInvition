@@ -9,6 +9,7 @@ import { EmailTemplateModule } from './email-template/email-template.module';
 import { UsersModule } from './users/users.module';
 import { BullModule } from '@nestjs/bull';
 import { LoggerModule } from 'nestjs-pino';
+import { SubscriptionModule } from './subscription/subscription.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { LoggerModule } from 'nestjs-pino';
     MailerModule,
     CacheModule,
     UsersModule,
+    SubscriptionModule,
   ],
   controllers: [],
   providers: [],

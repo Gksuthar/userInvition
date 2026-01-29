@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -36,7 +35,9 @@ model Admin {
 
   users        User[]
 
-  
+  permission_id String?
+  permission    Permission? @relation(fields: [permission_id], references: [id])
+
   
   created_at    DateTime  @default(now())
   updated_at    DateTime  @updatedAt
@@ -57,9 +58,13 @@ model User {
   
   invited_by    Admin?   @relation(fields: [invite_by], references: [id])
   invite_by String?
-    
+  
+  subscription  Subscription?
+  
   role String @default("user")
-
+  
+  permission_id String?
+  permission    Permission? @relation(fields: [permission_id], references: [id])
 
   is_verified   Boolean   @default(false)
   
@@ -83,4 +88,56 @@ model EmailTemplate {
   updated_at  DateTime            @updatedAt
 
   @@map("email_templates")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String?
+  users       User[]
+  rules       Json    
+  
+  deleted_at   DateTime?
+  deleted_by_id String?
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  adminUsers  Admin[]
+}
+
+model Category {
+  id          String     @id @default(uuid())
+  name        String
+  description String?
+
+  parentId    String?
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @updatedAt
+
+  @@map("categories")
+}
+enum SubscriptionStatus {
+  ACTIVE
+  CANCEL
+}
+
+
+model Subscription {
+  id          String              @id @default(uuid())
+
+  userId      String              @unique
+  user        User                @relation(fields: [userId], references: [id])
+
+  status      SubscriptionStatus @default(ACTIVE)
+
+  cancelled_by_admin_id String?
+
+  cancelled_at DateTime?
+  created_at  DateTime            @default(now())
+  updated_at  DateTime            @updatedAt
+
+  @@map("subscriptions")
 }
