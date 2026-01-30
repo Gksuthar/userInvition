@@ -1,8 +1,6 @@
+import { AdminAuthController } from './admin-auth.controller';
 import { EmailTemplateModule } from './../email-template/email-template.module';
 import { Module } from '@nestjs/common';
-import { AuthAdminService, AuthUserService } from './auth.service';
-import { AdminAuthController, UserAuthController } from './auth.controller';
-import { AuthAdminRepository, AuthUserRepository } from './auth.repositories';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -11,6 +9,14 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { MailerModule } from 'src/mailer/mailer.module';
 import { AuthHelperService } from './auth.helper';
 import { PermissionSeedService } from './permission/permission-seed.service';
+import { TenantController } from 'src/Tenant/Tenant.controller';
+import { TenantModule } from 'src/Tenant/Tenant.module';
+import { UserTenantModule } from 'src/userTenant/UserTenant.module';
+import { UserAuthController } from './user-auth.controller';
+import { AuthUserService } from './user-auth.service';
+import { AuthAdminService } from './admin-auth.service';
+import { AuthUserRepository } from './user-auth.repositories';
+import { AuthAdminRepository } from './admin-auth.repositories';
 
 @Module({
   imports: [
@@ -19,6 +25,8 @@ import { PermissionSeedService } from './permission/permission-seed.service';
     PrismaModule,
     MailerModule,
     EmailTemplateModule,
+    TenantModule,
+    UserTenantModule,
   ],
   providers: [
     AuthUserRepository,
@@ -29,6 +37,7 @@ import { PermissionSeedService } from './permission/permission-seed.service';
     RefreshJwtStrategy,
     AuthHelperService,
     PermissionSeedService,
+    TenantController,
   ],
   controllers: [AdminAuthController, UserAuthController],
   exports: [AuthUserService, AuthAdminService],

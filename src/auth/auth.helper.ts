@@ -8,8 +8,9 @@ import { CacheService } from 'src/cache/cache.service';
 import { EmailTemplateService } from 'src/email-template/email-template.service';
 import { EmailBullConfigService } from 'src/mailer/email-bull-config.service';
 import { OtpDto } from './dto/otp.dto';
-import { AuthAdminRepository, AuthUserRepository } from './auth.repositories';
 import { Logger } from 'nestjs-pino';
+import { AuthAdminRepository } from './admin-auth.repositories';
+import { AuthUserRepository } from './user-auth.repositories';
 
 @Injectable()
 export class AuthHelperService {

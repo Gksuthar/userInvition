@@ -1,11 +1,10 @@
+import { TenantController } from './../Tenant/Tenant.controller';
 import { VerifyOtpResponseDto } from './dto/verify-otp-response.dto';
 import { OtpDto } from './dto/otp.dto';
 import { RegisterDto } from './dto/register.dto';
-import { AuthAdminRepository, AuthUserRepository } from './auth.repositories';
 import {
   ConflictException,
   Injectable,
-  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
@@ -17,7 +16,8 @@ import { User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterResponseDto } from './dto/register-response.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
-
+import { UserTenantService } from 'src/userTenant/UserTenant.service';
+import { AuthUserRepository } from './user-auth.repositories';
 @Injectable()
 export class AuthUserService {
   constructor(
@@ -25,11 +25,13 @@ export class AuthUserService {
     private readonly authHelperService: AuthHelperService,
     private readonly logger: Logger,
     private readonly prisma: PrismaService,
+    private readonly tenantController: TenantController,
+    private readonly userTenantService: UserTenantService,
   ) {}
 
   async registerUser(registerDto: RegisterDto): Promise<RegisterResponseDto> {
     const role = 'user';
-    const { email, password, name } = registerDto;
+    const { email, password, name, slug } = registerDto;
     this.logger.log('User registration started', { email });
 
     const existingAdmin = await this.authUserRepository.findUserByEmail(email);
@@ -40,9 +42,12 @@ export class AuthUserService {
 
     await this.authHelperService.sendOtpForVerify(email, name, role);
     this.logger.log({ email }, 'OTP sent to user email');
-
     const hashedPassword = await bcrypt.hash(password, 10);
-
+    const tenant = slug
+      ? await this.tenantController.findTenantBySlugController(slug)
+      : null;
+    this.logger.log({ tenant }, 'the data is ----------------------------->');
+    let tenantId = tenant ? tenant?.id : null;
     const user: User | null = await this.authUserRepository.createUser({
       email,
       password: hashedPassword,
@@ -51,6 +56,12 @@ export class AuthUserService {
     if (!user) {
       this.logger.error({ email }, 'Failed to create user');
       throw new ConflictException('Failed to create user');
+    }
+    if (tenantId) {
+      await this.userTenantService.createUserTenant({
+        user_id: user.id,
+        tenant_id: tenantId as string,
+      });
     }
 
     // Attach role-based permission to the new user
@@ -147,146 +158,6 @@ export class AuthUserService {
 
   async verifyUser(verifyData: OtpDto): Promise<VerifyOtpResponseDto> {
     const role = 'user';
-    return await this.authHelperService.verifyUserOrAdmin(verifyData, role);
-  }
-}
-
-@Injectable()
-export class AuthAdminService {
-  constructor(
-    private readonly authRepository: AuthAdminRepository,
-    private readonly authHelperService: AuthHelperService,
-    private readonly logger: Logger,
-    private readonly prisma: PrismaService,
-  ) {}
-
-  async registerAdmin(registerDto: RegisterDto): Promise<RegisterResponseDto> {
-    const role = 'admin';
-    const { email, password, name } = registerDto;
-
-    const existingAdmin = await this.authRepository.findAdminByEmail(email);
-    if (existingAdmin) {
-      this.logger.warn({ email }, 'email is already exist');
-      throw new ConflictException('Admin already exists');
-    }
-
-    await this.authHelperService.sendOtpForVerify(email, name, role);
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const admin = await this.authRepository.createAdmin({
-      email,
-      password: hashedPassword,
-      name,
-    });
-    if (!admin) {
-      this.logger.warn({ email }, 'Admin is not created plz try again ');
-      throw new InternalServerErrorException(
-        'Admin could not be created. Please try again.',
-      );
-    }
-
-    const adminPermission = await this.prisma.permission.findFirst({
-      where: { name: role },
-    });
-    this.logger.log(
-      {
-        name,
-        role,
-        adminPermission,
-      },
-      'Permission fetched for role',
-    );
-
-    if (adminPermission) {
-      await this.prisma.admin.update({
-        where: { id: admin.id },
-        data: { permission_id: adminPermission.id },
-      });
-    }
-
-    this.logger.log(
-      { email },
-      'Admin registered successfully. OTP sent to email',
-    );
-
-    // const tokens = await this.generateTokens(admin.id, admin.email, 'admin');
-    return {
-      message: 'Admin registered successfully. OTP sent to email.',
-      data: {
-        id: admin.id,
-        email: admin.email,
-        name: admin.name,
-        is_verified: admin.is_verified,
-      },
-    };
-  }
-
-  async loginAdmin(loginDto: LoginDto): Promise<LoginResponseDto> {
-    const { email, password } = loginDto;
-    const existingAdmin = await this.authRepository.findAdminByEmail(email);
-
-    if (!existingAdmin) {
-      this.logger.warn({ email }, 'Admin already exists');
-      throw new UnauthorizedException('Admin already exists');
-    }
-
-    const isPasswordValid = await bcrypt.compare(
-      password,
-      existingAdmin.password,
-    );
-    if (!isPasswordValid) {
-      this.logger.warn({ email }, 'Invalid credentials');
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    const isverify = existingAdmin.is_verified;
-    if (!isverify) {
-      await this.authHelperService.sendOtpForVerify(
-        existingAdmin.email,
-        existingAdmin.name,
-        'admin',
-      );
-      this.logger.warn(
-        { email },
-        'Please verify your email. OTP has been sent again',
-      );
-
-      throw new UnauthorizedException(
-        'Please verify your email. OTP has been sent again.',
-      );
-    }
-
-    const isDeletedUser = existingAdmin.delete_by_id;
-    if (isDeletedUser) {
-      this.logger.warn(
-        { email },
-        'Your account has been deleted. Please contact support',
-      );
-      throw new UnauthorizedException(
-        'Your account has been deleted. Please contact support.',
-      );
-    }
-
-    const tokens = this.authHelperService.generateTokens(
-      existingAdmin.id,
-      existingAdmin.email,
-      existingAdmin.role,
-    );
-    this.logger.log({ email }, 'Admin login successfully.');
-    return {
-      message: 'Admin login successfully.',
-      data: {
-        id: existingAdmin.id,
-        email: existingAdmin.email,
-        name: existingAdmin.name,
-        is_verified: existingAdmin.is_verified,
-      },
-      tokens,
-    };
-  }
-
-  async verifyAdmin(verifyData: OtpDto): Promise<VerifyOtpResponseDto> {
-    const role = 'admin';
     return await this.authHelperService.verifyUserOrAdmin(verifyData, role);
   }
 }

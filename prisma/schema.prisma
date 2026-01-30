@@ -12,6 +12,7 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
 enum EmailTemplateType {
   ADMIN_SIGNUP_OTP
   ADMIN_FORGOT_PASSWORD
@@ -24,120 +25,172 @@ enum EmailTemplateType {
 }
 
 model Admin {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  password      String
-  name          String
+  id       String @id @default(uuid())
+  email    String @unique
+  password String
+  name     String
 
-  is_verified   Boolean   @default(false)
-
-  role String @default("admin")
-
-  users        User[]
+  is_supreme_admin Boolean @default(false)
+  users User[]
 
   permission_id String?
   permission    Permission? @relation(fields: [permission_id], references: [id])
+  is_verified Boolean @default(false)
 
-  
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   delete_by_id String?
   deleted_at   DateTime?
+
+  tenant   Tenant? @relation(fields: [tenant_id], references: [id])
+  tenant_id String?
 
   @@map("admins")
 }
 
-
-
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  password      String
-  name        String  
-  
-  invited_by    Admin?   @relation(fields: [invite_by], references: [id])
-  invite_by String?
-  
-  subscription  Subscription?
-  
+  id       String @id @default(uuid())
+  email    String @unique
+  password String
+  name     String
+
+  invited_by Admin?  @relation(fields: [invite_by], references: [id])
+  invite_by  String?
+
+  subscription Subscription?
+
+
   role String @default("user")
-  
+
   permission_id String?
   permission    Permission? @relation(fields: [permission_id], references: [id])
 
-  is_verified   Boolean   @default(false)
-  
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
-  
+  is_verified Boolean @default(false)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
   delete_by_id String?
   deleted_at   DateTime?
+
+  userTenants UserTenant[]
 
   @@map("users")
 }
 
 model EmailTemplate {
-  id          String              @id @default(uuid())
-  name        String              @unique
-  subject     String
-  body        String              @db.Text
-  type        EmailTemplateType   @unique
-  is_default  Boolean             @default(false)
-  created_at  DateTime            @default(now())
-  updated_at  DateTime            @updatedAt
+  id         String            @id @default(uuid())
+  name       String            @unique
+  subject    String
+  body       String            @db.Text
+  type       EmailTemplateType @unique
+  is_default Boolean           @default(false)
+
+  created_by String?
+  created_at DateTime @default(now())
+
+  updated_by String?
+  updated_at DateTime @updatedAt
 
   @@map("email_templates")
 }
 
 model Permission {
-  id          String   @id @default(uuid())
-  name        String?
-  users       User[]
-  rules       Json    
-  
-  deleted_at   DateTime?
+  id    String  @id @default(uuid())
+  name  String? @unique
+  users User[]
+  rules Json
+
+  deleted_at    DateTime?
   deleted_by_id String?
 
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
-  adminUsers  Admin[]
+  adminUsers Admin[]
 }
 
 model Category {
-  id          String     @id @default(uuid())
+  id          String  @id @default(uuid())
   name        String
   description String?
 
-  parentId    String?
-  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children    Category[] @relation("CategoryHierarchy")
+  parentId String?
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
 
-  created_at  DateTime   @default(now())
-  updated_at  DateTime   @updatedAt
+  created_by String?
+  created_at DateTime @default(now())
+
+  updated_by String?
+  updated_at DateTime @updatedAt
+
+  deleted_at    DateTime?
+  deleted_by_id String?
 
   @@map("categories")
 }
+
 enum SubscriptionStatus {
   ACTIVE
   CANCEL
 }
 
-
 model Subscription {
-  id          String              @id @default(uuid())
+  id String @id @default(uuid())
 
-  userId      String              @unique
-  user        User                @relation(fields: [userId], references: [id])
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
 
-  status      SubscriptionStatus @default(ACTIVE)
+  status SubscriptionStatus @default(ACTIVE)
 
   cancelled_by_admin_id String?
 
   cancelled_at DateTime?
-  created_at  DateTime            @default(now())
-  updated_at  DateTime            @updatedAt
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  deleted_at    DateTime?
+  deleted_by_id String?
 
   @@map("subscriptions")
 }
+
+model Tenant {
+  id   String @id @default(uuid())
+  name String
+  slug String @unique
+
+  deleted_at    DateTime?
+  deleted_by_id String?
+
+
+
+  users      UserTenant[]
+  adminUsers Admin[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+// create UserTenant
+model UserTenant {
+  id String @id @default(uuid())
+
+  user_id   String
+  tenant_id String
+
+  deleted_at    DateTime?
+  deleted_by_id String?
+
+  user   User   @relation(fields: [user_id], references: [id])
+  tenant Tenant @relation(fields: [tenant_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([user_id, tenant_id])
+}
+
+

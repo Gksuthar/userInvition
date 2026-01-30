@@ -10,6 +10,9 @@ import { UsersModule } from './users/users.module';
 import { BullModule } from '@nestjs/bull';
 import { LoggerModule } from 'nestjs-pino';
 import { SubscriptionModule } from './subscription/subscription.module';
+import { CategoryModule } from './Category/category.module';
+import { TenantModule } from './Tenant/Tenant.module';
+import { UserTenantModule } from './userTenant/UserTenant.module';
 
 @Module({
   imports: [
@@ -46,8 +49,10 @@ import { SubscriptionModule } from './subscription/subscription.module';
         },
       },
     }),
-
     PrismaModule,
+    UserTenantModule,
+    TenantModule,
+    CategoryModule,
     AuthModule,
     EmailTemplateModule,
     MailerModule,

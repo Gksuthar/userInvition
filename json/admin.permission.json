@@ -7,9 +7,20 @@
         "update": true,
         "delete": true
       },
+      "tenant": {
+        "read": true,
+        "create": true,
+        "update": true,
+        "delete": true
+      },
       "subscriptions": {
         "ACTIVE": true,
         "CANCEL": true
+      },
+      "emailTemplate": {
+        "create": true,
+        "update": true,
+        "delete": true
       }
     },
     "user": {
@@ -17,6 +28,12 @@
         "read": true,
         "create": true,
         "update": true,
+        "delete": false
+      },
+      "tenant": {
+        "read": true,
+        "create": true,
+        "update": false,
         "delete": false
       },
       "categories": {
@@ -28,6 +45,11 @@
       "subscriptions": {
         "ACTIVE": true,
         "CANCEL": false
+      },
+        "emailTemplate": {
+        "create": false,
+        "update": false,
+        "delete": false
       }
      
     }

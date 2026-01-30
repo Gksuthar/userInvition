@@ -15,6 +15,7 @@ import { Logger } from 'nestjs-pino';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { ActiveSubscriptionResponseDto } from './dto/ActiveSubscriptionResponseDto';
+import { ACCESS_TYPES, FEATURES, ROLES } from 'src/utils/roles';
 
 @ApiTags('Subscription')
 @ApiBearerAuth()
