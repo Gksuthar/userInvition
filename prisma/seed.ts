@@ -1,9 +1,22 @@
 import { PrismaClient } from '@prisma/client';
 import permissionsConfig from '../json/admin.permission.json';
-import bcrypt from 'node_modules/bcryptjs';
+import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
-// type RolesConfig = typeof permissionsConfig.roles;
+function setAllTrue(input: any): any {
+  if (typeof input !== 'object' || input === null) {
+    return true;
+  }
+
+  const result: any = {};
+
+  for (const key in input) {
+    result[key] = setAllTrue(input[key]);
+  }
+
+  return result;
+}
+
 
 async function main() {
   const roles = permissionsConfig.roles;
@@ -40,6 +53,24 @@ async function main() {
 
   // super admin
   const superAdminEmail = 'gkstar434@gmail.com';
+   const DefaultTenant = await prisma.tenant.upsert({
+    where: { slug: 'flipkart' },
+    update: {},
+    create: {
+      name: 'Flipkart',
+      slug: 'flipkart',
+    },
+  });
+  const superAdminRules = setAllTrue(roles.admin);
+
+  const superAdminPermission = await prisma.permission.upsert({
+    where: { name: 'super_Admin' },
+    update: { rules: superAdminRules },
+    create: {
+      name: 'super_Admin',
+      rules: superAdminRules,
+    },
+  });
 
   const existingSuperAdmin = await prisma.admin.findFirst({
     where: { is_supreme_admin: true },
@@ -54,7 +85,8 @@ async function main() {
         password: hashedPassword,
         name: 'Super Admin',
         is_supreme_admin: true,
-        permission_id: adminPermission.id,
+        permission_id: superAdminPermission.id,
+        tenant_id: DefaultTenant.id,
       },
     });
 
@@ -62,10 +94,6 @@ async function main() {
   } else {
     console.log('ℹ️ Super Admin already exists');
   }
-
-  console.log('✅ Permissions seeded successfully');
-
-  console.log('✅ Permissions seeded successfully');
 }
 
 main()

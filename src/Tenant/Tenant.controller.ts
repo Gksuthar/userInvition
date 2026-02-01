@@ -12,7 +12,7 @@ export class TenantController {
 
   @Post()
   @ApiOperation({ summary: 'create Tenant ' })
-  @RequirePermission('tenant', 'create', 'admin')
+  // @RequirePermission('tenant', 'create', 'admin')
   async createTenant(@Body() dto: TenantDto): Promise<TenantResponseDto> {
     return await this.tenantService.createTenantService(dto);
   }
