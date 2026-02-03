@@ -13,4 +13,5 @@ export class LoginResponseDto {
   message: string;
   data: LoginUserInfoResponseDto;
   tokens: LoginTokensResponseDto;
+  is_supreme_admin: boolean;
 }

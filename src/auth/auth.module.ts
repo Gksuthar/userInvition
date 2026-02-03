@@ -8,7 +8,6 @@ import { RefreshJwtStrategy } from './strategies/refresh-jwt.strategy';
 import { PrismaModule } from '../prisma/prisma.module';
 import { MailerModule } from 'src/mailer/mailer.module';
 import { AuthHelperService } from './auth.helper';
-import { PermissionSeedService } from './permission/permission-seed.service';
 import { TenantController } from 'src/Tenant/Tenant.controller';
 import { TenantModule } from 'src/Tenant/Tenant.module';
 import { UserTenantModule } from 'src/userTenant/UserTenant.module';
@@ -36,7 +35,6 @@ import { AuthAdminRepository } from './admin-auth.repositories';
     JwtStrategy,
     RefreshJwtStrategy,
     AuthHelperService,
-    PermissionSeedService,
     TenantController,
   ],
   controllers: [AdminAuthController, UserAuthController],

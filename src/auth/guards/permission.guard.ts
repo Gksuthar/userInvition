@@ -5,18 +5,19 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import permissionsConfig from '../../../json/admin.permission.json';
 
 import { PERMISSION_KEY } from '../decorator/require-permission.decorator';
 import { Logger } from 'nestjs-pino';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private readonly logger: Logger,
+    private readonly prisma: PrismaService,
   ) {}
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest();
     const required = this.reflector.getAllAndOverride<{
       feature: string;
@@ -26,17 +27,26 @@ export class PermissionGuard implements CanActivate {
     if (!required) return true;
     const user = req.user;
     if (!user) throw new ForbiddenException('Not authenticated');
-
+    console.log('userType========================================'+JSON.stringify(user));
     const role = user.role;
     this.logger.log({ role }, '----userId----?');
 
-    const rolePermissions = permissionsConfig.roles?.[role];
-    if (!rolePermissions)
-      throw new ForbiddenException('Role has no permissions defined');
+    if (role === 'super_Admin') {
+      return true;
+    }
 
-    const allowed =
-      rolePermissions?.[required.feature]?.[required.action] === true;
-    this.logger.log({ allowed }, '--------?');
+    const permission = await this.prisma.permission.findFirst({
+      where: { name: role },
+    });
+    if (!permission || !permission.rules)
+      throw new ForbiddenException('Role has no permissions defined');
+    const rules = permission.rules;
+    console.log('data is-------------------------->' + JSON.stringify(rules));
+    const allowed = rules?.[required.feature]?.[required.action] === true;
+    console.log(
+      'allowed------------------------------------------------------>',
+      allowed,
+    );
     if (!allowed) {
       throw new ForbiddenException(
         `You do not have permission to ${required.action} ${required.feature}.`,

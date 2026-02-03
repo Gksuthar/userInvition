@@ -153,6 +153,7 @@ export class AuthUserService {
         is_verified: existingUser.is_verified,
       },
       tokens,
+      is_supreme_admin: false,
     };
   }
 

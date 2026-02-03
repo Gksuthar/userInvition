@@ -139,11 +139,11 @@ export class AuthAdminService {
         'Your account has been deleted. Please contact support.',
       );
     }
-
+    const role = existingAdmin.is_supreme_admin ? 'super_Admin' : 'admin';
     const tokens = this.authHelperService.generateTokens(
       existingAdmin.id,
       existingAdmin.email,
-      'admin',
+      role,
     );
     this.logger.log({ email }, 'Admin login successful');
     return {
@@ -155,6 +155,7 @@ export class AuthAdminService {
         is_verified: existingAdmin.is_verified,
       },
       tokens,
+      is_supreme_admin: existingAdmin.is_supreme_admin,
     };
   }
 
