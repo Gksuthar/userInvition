@@ -8,6 +8,7 @@ import { OtpDto } from './dto/otp.dto';
 import { LoginDto } from './dto/login.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { AuthUserService } from './user-auth.service';
+import { Throttle, minutes } from '@nestjs/throttler';
 
 @ApiTags('User Authentication')
 @Controller('user')
@@ -45,10 +46,10 @@ export class UserAuthController {
     });
     return this.authService.verifyUser(otpDto);
   }
-
   @ApiOperation({ summary: 'User Login' })
   @ApiBody({ type: LoginDto })
   @ApiResponse({ status: 200, description: 'User login successfully.' })
+  @Throttle({ default: { limit: 3, ttl: minutes(1) } })
   @Post('signin')
   async loginUser(@Body() loginDto: LoginDto): Promise<LoginResponseDto> {
     this.logger.log({

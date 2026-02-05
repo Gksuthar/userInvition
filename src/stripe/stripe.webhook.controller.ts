@@ -6,7 +6,9 @@ import { SubscriptionStatus } from '@prisma/client';
 import { Logger } from 'nestjs-pino';
 import Stripe from 'stripe';
 import { ApiExcludeController } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 
+@SkipThrottle()
 @ApiExcludeController()
 @Controller('webhooks/stripe')
 export class StripeWebhookController {

@@ -30,7 +30,6 @@ export class SubscriptionController {
 
   @Post('active/:userId/:planId')
   @ApiOperation({ summary: 'Activate a user subscription (Admin only)' })
-  // @RequirePermission('subscriptions', 'ACTIVE')
   async activateForUser(
     @Param('userId') userId: string,
     @Param('planId') planId: string,

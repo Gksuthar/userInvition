@@ -1,8 +1,6 @@
 import { CacheModule } from './cache/cache.module';
 import { MailerModule } from './mailer/mailer.module';
-import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-
 import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { EmailTemplateModule } from './email-template/email-template.module';
@@ -15,14 +13,33 @@ import { TenantModule } from './Tenant/Tenant.module';
 import { UserTenantModule } from './userTenant/UserTenant.module';
 import { PlanModule } from './plan/plan.module';
 import { StripeModule } from './stripe/stripe.module';
+import { ThrottlerModule, ThrottlerGuard, minutes } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { Module } from '@nestjs/common';
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: minutes(1),
+          limit: 10,
+        },
+      ],
+      errorMessage: (context, detail) => {
+        const req = context.switchToHttp().getRequest();
+
+        if (req.url.includes('/user/signin')) {
+          return 'Too many login attempts. Please try again after some time.';
+        }
+        return 'Too many requests. Please try again after some time.';
+      },
+    }),
     ConfigModule.forRoot({ isGlobal: true }),
     BullModule.forRoot({
       redis: {
-        host: process.env.REDIS_HOST || '127.0.0.1',
-        port: Number(process.env.REDIS_PORT) || 6379,
+        host: process.env.REDIS_HOST,
+        port: Number(process.env.REDIS_PORT),
       },
     }),
     LoggerModule.forRoot({
@@ -65,6 +82,11 @@ import { StripeModule } from './stripe/stripe.module';
     StripeModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
-export class AppModule { }
+export class AppModule {}
