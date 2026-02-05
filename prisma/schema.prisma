@@ -13,6 +13,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum PlanInterval {
+  MONTH
+}
+
+
 enum EmailTemplateType {
   ADMIN_SIGNUP_OTP
   ADMIN_FORGOT_PASSWORD
@@ -60,6 +65,7 @@ model User {
 
   subscription Subscription?
 
+  stripe_customer_id String?  
 
   role String @default("user")
 
@@ -148,8 +154,14 @@ model Subscription {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id])
 
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id])
+
   status SubscriptionStatus @default(ACTIVE)
 
+  is_one_time Boolean @default(false)
+
+  stripeSubscriptionId  String?  @unique
 
   cancelled_by_admin_id String?
 
@@ -200,3 +212,27 @@ model UserTenant {
 }
 
 
+model Plan{
+  id String @id @default(uuid())
+
+  name String
+  description String
+
+  price Int
+  Interval PlanInterval
+
+  is_one_time Boolean @default(false)
+
+
+  stripe_product_id String
+  stripe_price_id   String
+
+  is_active  Boolean @default(true)
+  is_default Boolean @default(false)
+  is_free    Boolean @default(false)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  subscriptions Subscription[]
+}

@@ -15,7 +15,9 @@
       },
       "subscriptions": {
         "ACTIVE": true,
-        "CANCEL": true
+        "CANCEL": true,
+        "create": true
+
       },
       "emailTemplate": {
         "create": false,

@@ -26,4 +26,17 @@ export class UsersService {
       role: user.role,
     };
   }
+
+  async getUserByUserIdService(id: string): Promise<UserInfoResponseDto> {
+    const user = await this.usersRepository.findById(id);
+    if (!user) {
+      this.logger.warn({ id, message: 'user not found' });
+      throw new NotFoundException('User not found');
+    }
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    };
+  }
 }

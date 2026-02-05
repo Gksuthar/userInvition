@@ -1,15 +1,8 @@
 export const FEATURES = {
   ADMIN: 'admin',
   USER: 'user',
-  SUBSCRIPTION: 'subscription',
+  SUBSCRIPTION: 'subscriptions',
 };
-
-// export const ACCESS_TYPES = {
-//   READ: true,
-//   CREATE: true,
-//   UPDATE: true,
-//   DELETE: true,
-// };
 
 export const ACCESS_TYPES = {
   READ: 'read',

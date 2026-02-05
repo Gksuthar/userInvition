@@ -3,4 +3,6 @@ export class ActiveSubscriptionResponseDto {
   userId: string;
   status: string;
   startedAt: Date;
+  planId?: string;
+  endedAt?: Date | null;
 }

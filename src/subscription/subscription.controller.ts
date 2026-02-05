@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -15,10 +16,11 @@ import { Logger } from 'nestjs-pino';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { ActiveSubscriptionResponseDto } from './dto/ActiveSubscriptionResponseDto';
+import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { ACCESS_TYPES, FEATURES, ROLES } from 'src/utils/roles';
 
 @ApiTags('Subscription')
-@ApiBearerAuth()
+// @ApiBearerAuth()
 @Controller('subscription')
 export class SubscriptionController {
   constructor(
@@ -26,15 +28,19 @@ export class SubscriptionController {
     private readonly logger: Logger,
   ) {}
 
-  @Post('active/:userId')
+  @Post('active/:userId/:planId')
   @ApiOperation({ summary: 'Activate a user subscription (Admin only)' })
-  @RequirePermission('subscriptions', 'ACTIVE')
+  // @RequirePermission('subscriptions', 'ACTIVE')
   async activateForUser(
     @Param('userId') userId: string,
+    @Param('planId') planId: string,
   ): Promise<ActiveSubscriptionResponseDto> {
     this.logger.log({ userId }, 'request received to activate subscription');
 
-    const response = await this.subscriptionService.activateForUser(userId);
+    const response = await this.subscriptionService.activateForUser(
+      userId,
+      planId,
+    );
 
     this.logger.log(
       { userId, subscriptionId: response.id },
@@ -56,5 +62,24 @@ export class SubscriptionController {
     const adminId = req.user.userId;
     this.logger.log({ userId, adminId }, 'request received for remove user');
     return this.subscriptionService.cancelSubscription(userId, adminId);
+  }
+
+  @Post('checkout')
+  @ApiOperation({ summary: 'Create Stripe checkout session' })
+  @RequirePermission(FEATURES.SUBSCRIPTION, ACCESS_TYPES.CREATE, ROLES.ADMIN)
+  createCheckout(@Body() dto: CreateCheckoutDto) {
+    return this.subscriptionService.createCheckoutSession(
+      dto.userId,
+      dto.planId,
+    );
+  }
+  @Post('free/checkout')
+  @RequirePermission(FEATURES.SUBSCRIPTION, ACCESS_TYPES.CREATE, ROLES.ADMIN)
+  @ApiOperation({ summary: 'Create Stripe checkout free' })
+  createCheckoutFree(@Body() dto: CreateCheckoutDto) {
+    return this.subscriptionService.createCheckoutSession(
+      dto.userId,
+      dto.planId,
+    );
   }
 }

@@ -38,6 +38,7 @@ export class PermissionGuard implements CanActivate {
     const permission = await this.prisma.permission.findFirst({
       where: { name: role },
     });
+    console.log('----------------->', permission);
     if (!permission || !permission.rules)
       throw new ForbiddenException('Role has no permissions defined');
     const rules = permission.rules;

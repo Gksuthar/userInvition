@@ -14,6 +14,7 @@ export class UsersController {
     private usersService: UsersService,
     private logger: Logger,
   ) {}
+
   @Get()
   @ApiOkResponse({ type: UserInfoResponseDto })
   @RequirePermission(FEATURES.USER, ACCESS_TYPES.READ, ROLES.ADMIN)

@@ -13,6 +13,8 @@ import { SubscriptionModule } from './subscription/subscription.module';
 import { CategoryModule } from './Category/category.module';
 import { TenantModule } from './Tenant/Tenant.module';
 import { UserTenantModule } from './userTenant/UserTenant.module';
+import { PlanModule } from './plan/plan.module';
+import { StripeModule } from './stripe/stripe.module';
 
 @Module({
   imports: [
@@ -56,9 +58,11 @@ import { UserTenantModule } from './userTenant/UserTenant.module';
     AuthModule,
     EmailTemplateModule,
     MailerModule,
+    PlanModule,
     CacheModule,
     UsersModule,
     SubscriptionModule,
+    StripeModule,
   ],
   controllers: [],
   providers: [],

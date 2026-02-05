@@ -9,6 +9,14 @@ export function RequirePermission(
   action: string,
   userType?: string,
 ) {
+  console.log(
+    'feature--->',
+    feature,
+    '----------action',
+    action,
+    '--------------->',
+    userType,
+  );
   return applyDecorators(
     UseGuards(JwtAuthGuard, PermissionGuard),
     SetMetadata(PERMISSION_KEY, { feature, action, userType }),

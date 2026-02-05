@@ -7,7 +7,7 @@ import { Subscription } from '@prisma/client';
 export class SubscriptionRepository {
   private readonly logger = new Logger(SubscriptionRepository.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async findById(id: string): Promise<Subscription | null> {
     this.logger.log({ id }, 'find subscription by id request');
@@ -59,7 +59,7 @@ export class SubscriptionRepository {
     return subscription;
   }
 
-  async activateByUserId(userId: string): Promise<Subscription> {
+  async activateByUserId(userId: string, planId: string): Promise<Subscription> {
     this.logger.log({ userId }, 'activate subscription by user id request');
 
     const subscription = await this.prisma.subscription.upsert({
@@ -68,10 +68,12 @@ export class SubscriptionRepository {
         status: SubscriptionStatus.ACTIVE,
         cancelled_at: null,
         cancelled_by_admin_id: null,
+        planId,
       },
       create: {
         userId,
         status: SubscriptionStatus.ACTIVE,
+        planId,
       },
     });
 

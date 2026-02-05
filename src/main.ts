@@ -5,9 +5,12 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true,
+  });
+
   app.useGlobalPipes(new ValidationPipe());
-  // app.useGlobalGuards(new (AuthGuard('jwt'))());
+
   app.enableCors({
     origin: ['http://localhost:3000', 'http://localhost:5173'],
     credentials: true,
@@ -19,16 +22,12 @@ async function bootstrap() {
     .setTitle('Your API Title')
     .setDescription('API documentation')
     .setVersion('1.0')
-    .addBearerAuth({
-      type: 'http',
-      scheme: 'bearer',
-      bearerFormat: 'JWT',
-      in: 'header',
-      name: 'Authorization',
-    })
+    .addBearerAuth()
     .build();
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
+
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

@@ -8,3 +8,4 @@ export enum EmailTemplateType {
   USER_WELCOME = 'USER_WELCOME',
   ADMIN_WELCOME = 'ADMIN_WELCOME',
 }
+
