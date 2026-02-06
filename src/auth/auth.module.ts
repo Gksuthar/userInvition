@@ -16,7 +16,6 @@ import { AuthUserService } from './user-auth.service';
 import { AuthAdminService } from './admin-auth.service';
 import { AuthUserRepository } from './user-auth.repositories';
 import { AuthAdminRepository } from './admin-auth.repositories';
-
 @Module({
   imports: [
     PassportModule,

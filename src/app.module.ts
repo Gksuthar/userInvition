@@ -13,28 +13,10 @@ import { TenantModule } from './Tenant/Tenant.module';
 import { UserTenantModule } from './userTenant/UserTenant.module';
 import { PlanModule } from './plan/plan.module';
 import { StripeModule } from './stripe/stripe.module';
-import { ThrottlerModule, ThrottlerGuard, minutes } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
 import { Module } from '@nestjs/common';
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot({
-      throttlers: [
-        {
-          ttl: minutes(1),
-          limit: 10,
-        },
-      ],
-      errorMessage: (context, detail) => {
-        const req = context.switchToHttp().getRequest();
-
-        if (req.url.includes('/user/signin')) {
-          return 'Too many login attempts. Please try again after some time.';
-        }
-        return 'Too many requests. Please try again after some time.';
-      },
-    }),
     ConfigModule.forRoot({ isGlobal: true }),
     BullModule.forRoot({
       redis: {
@@ -82,11 +64,6 @@ import { Module } from '@nestjs/common';
     StripeModule,
   ],
   controllers: [],
-  providers: [
-    {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
-    },
-  ],
+  providers: [],
 })
 export class AppModule {}
